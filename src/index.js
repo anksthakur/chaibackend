@@ -6,4 +6,4 @@ dotenv.config({
     path: "./env"
 })
 
-dbConnect();
+dbConnect()
