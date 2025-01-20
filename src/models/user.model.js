@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  // if condition only when password change that time bcrypt the password
+  //  when password change that time bcrypt the password
   if (!this.isModified("password")) return next();
   this.password = bcrypt.hash(this.password, 10);
   next();
@@ -57,7 +57,7 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
-// to genrate Access the token
+// to genrate  the Access token
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {

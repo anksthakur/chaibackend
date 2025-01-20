@@ -3,7 +3,7 @@ constructor(
     statusCode,
     message = 'API Error',
     errors=[],
-    statck = ""
+    stack = ""
 ){
     super(message)
     this.statusCode = statusCode
@@ -11,8 +11,8 @@ constructor(
     this.message=message
     this.success= false
     this.errors = errors
-    // statck m ki kin kin files m problem hai
-    if(statck){
+    // stack m ki kin kin files m problem hai
+    if(stack){
         this.stack = stack
     }else{
         Error.captureStackTrace(this,this.constructor)
