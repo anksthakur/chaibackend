@@ -6,7 +6,7 @@ const app = express();
 
 // Enable CORS
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "*", // Allow all origins for testing
+    origin: process.env.CORS_ORIGIN || "*",
     credentials: true
 }));
 

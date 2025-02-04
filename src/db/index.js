@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const dbConnect = async () => {
   try {
     const dbURI = "mongodb://localhost:27017/wetube";
-    await mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true });
+    await mongoose.connect(dbURI);
     console.log("MongoDB connected with wetube");
   } catch (error) {
     console.log("MongoDB connection error:", error);
