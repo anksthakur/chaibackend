@@ -1,19 +1,15 @@
 import mongoose from "mongoose";
-import express from "express";
 
-const app = express();
-const PORT = 5001;
+// DB connection function
 const dbConnect = async () => {
   try {
     const dbURI = "mongodb://localhost:27017/wetube";
-    await mongoose.connect(dbURI);
+    await mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log("MongoDB connected with wetube");
-    app.listen(PORT || 8000, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
   } catch (error) {
-    console.log("Mongo db connection error  :", error);
-    process.exit(1);
+    console.log("MongoDB connection error:", error);
+    throw error;
   }
 };
+
 export default dbConnect;

@@ -1,29 +1,27 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import userRouter from "./user/user.routes.js"
 
-const app = express()
-// sirf kon kon se path ko access kar ske
+const app = express();
+
+// Enable CORS
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials:true
-}))
-// json file kitne size ki hum le ske
-app.use(express.json({
-    limit:"16kb"
-}))
-// url m jo space ke ley % aata hai uhsko smjne ke ley
-app.use(express.urlencoded())
-// images public folder m save karwane ke ley
-app.use(express.static("public"))
-// user ke browser se cookies access kar ske 
+    origin: process.env.CORS_ORIGIN || "*", // Allow all origins for testing
+    credentials: true
+}));
+
+// Middleware to parse JSON and URL-encoded data
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from "public" directory
+app.use(express.static("public"));
+
+// Use cookie parser
 app.use(cookieParser());
 
-//routes
-//app.get hum tab krte hai jab humne jab route and controller sath m likhte hai
-// jab hum alg alg define krte hai to middleware use krna pdta hai 
-app.use("/api/v1/users", userRouter)
-//http://localhost:5001/api/v1/users/register
 
-export {app}
+import userRouter from "./routes/user.routes.js";
+app.use("/api/v1/users", userRouter);
+
+export { app };
