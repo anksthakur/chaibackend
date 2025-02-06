@@ -250,9 +250,11 @@ const changeCurrentPassword = async (req, res) => {
     }
 
     user.password = newPassword;
-   await user.save({ validateBeforeSave: false });
+    await user.save({ validateBeforeSave: false });
 
-   return res.status(200).json(new ApiResponse(200,{},"Password changed successfully"))
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Password changed successfully"));
   } catch (error) {
     throw new ApiError(401, "error while changing password");
   }
@@ -260,65 +262,189 @@ const changeCurrentPassword = async (req, res) => {
 
 //current user
 const getCurrentUser = async (req, res) => {
-try {
-  return res.status(200).json(200,req.user,"current user fetched successfully")
-} catch (error) {
-  throw new ApiError(401,"can not find current user")
-}
+  try {
+    return res
+      .status(200)
+      .json(200, req.user, "current user fetched successfully");
+  } catch (error) {
+    throw new ApiError(401, "can not find current user");
+  }
 };
 
 // update user details
 const updateAccountDetail = async (req, res) => {
-try {
-  const {email,fullName} = req.body
-  if(!(email || fullName)){
-    throw new ApiError(400, "All fiels are required")
+  try {
+    const { email, fullName } = req.body;
+    if (!(email || fullName)) {
+      throw new ApiError(400, "All fiels are required");
+    }
+
+    const user = User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          email,
+          fullName,
+        },
+      },
+      { new: true }
+    ).select("-password");
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "Account details updates successfully"));
+  } catch (error) {
+    throw new ApiError(400, "Error while updating th account details");
   }
-
-  const user = User.findByIdAndUpdate(
-    req.user?._id,{
-      $set:{
-        email,fullName
-      }
-    },{new:true}
-  ).select("-password")
-
-  return res.status(200).json(new ApiResponse(200,user,"Account details updates successfully"))
-} catch (error) {
-  throw new ApiError(400,"Error while updating th account details")
-}
 };
 
 //update avatar
 
-const updateUserAvatar = async (req,res) => {
+const updateUserAvatar = async (req, res) => {
   try {
-   const avatarLocalPath = req.file?.path;
-   if(!avatarLocalPath){
-    throw new ApiError(400,"Avatar file is missing"); 
-   }
+    const avatarLocalPath = req.file?.path;
+    if (!avatarLocalPath) {
+      throw new ApiError(400, "Avatar file is missing");
+    }
 
-const avatar = await uploadOnCloudinary(avatarLocalPath)
-if(!avatar.url){
-  throw new ApiError(400,"Avatar uploading failed")
-}
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if (!avatar.url) {
+      throw new ApiError(400, "Avatar uploading failed");
+    }
 
-const user = await User.findByIdAndUpdate(req.user?._id,{
-$set:{
-  avatar:avatar.url
-}
-},
-{new:true})
-.select("-password")
+    const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          avatar: avatar.url,
+        },
+      },
+      { new: true }
+    ).select("-password");
 
-return res.status(200).json(new ApiResponse(200,user,"avatar image updated successfully"))
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "avatar image updated successfully"));
   } catch (error) {
-    throw new ApiError(400,"error while updating avatar")
+    throw new ApiError(400, "error while updating avatar");
   }
 };
 
+// user channel profile
+const getUserChannelProfile = async (req, res) => {
+  try {
+    const { username } = req.params;
+    if (!username?.trim()) {
+      throw new ApiError(400, "username is missing");
+    }
+    //Aggregation pipeline
+    const channel = await User.aggregate([
+      {
+        $match: {
+          username: username?.toLowerCase(),
+        },
+      },
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "channel",
+          as: "subscribers",
+        },
+      },
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "subscriber",
+          as: "subscribedTo",
+        },
+      },
+      {
+        $addFields: {
+          subscribersCount: {
+            $size: "$subscribers",
+          },
+          channelSubscribedToCount: {
+            $size: "$subscribedTo",
+          },
+          isSubscribed: {
+            $cond: {
+              if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+              then: true,
+              else: false,
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          fullName: 1,
+          username: 1,
+          subscribersCount: 1,
+          channelSubscribedToCount: 1,
+          isSubscribed: 1,
+          avatar: 1,
+          coverImage: 1,
+          email: 1,
+        },
+      },
+    ]);
+    console.log("channel : ", channel);
+    if (!channel?.length) {
+      throw new ApiError(400, "Channel not found");
+    }
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, channel[0], "User chanel fetched successfully")
+      );
+  } catch (error) {
+    throw new ApiError(400, "User detail is missing");
+  }
+};
+
+//sub pipeline nested lookup
+const getWatchHistory = async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+        ],      
+      },
+    },
+  ]);
+  return res.status(200).json(new ApiResponse(200,user[0].watchHistory,"watch history fetched"))
+};
 
 export {
+  getWatchHistory,
   registerUser,
   loginUser,
   logoutUser,
@@ -326,5 +452,6 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateAccountDetail,
-  updateUserAvatar
+  updateUserAvatar,
+  getUserChannelProfile,
 };
