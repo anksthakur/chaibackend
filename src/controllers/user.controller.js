@@ -67,15 +67,12 @@ const registerUser = async (req, res) => {
       throw new ApiError(409, "User with email or username already exists");
     }
 
-    console.log("Cloudinary image data:", req.files);
-
     const avatarImageLocalPath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.cover?.[0]?.path;
 
     if (!avatarImageLocalPath) {
       throw new ApiError(400, "Avatar file is required");
     }
-
     console.log("Uploading Avatar to Cloudinary:", avatarImageLocalPath);
     const avatar = await uploadCloudinary(avatarImageLocalPath);
     console.log("Cloudinary Avatar Response:", avatar);
@@ -202,7 +199,7 @@ const refreshAccessToken = async (req, res) => {
   try {
     const incomingRefreshToken =
       req.cookies.refreshToken || req.body.refreshToken;
-    if (incomingRefreshToken) {
+    if (!incomingRefreshToken) {
       throw new ApiError(401, "Unauthorized request");
     }
     const decodedToken = jwt.verify(
